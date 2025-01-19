@@ -1,6 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Models;
-using Microsoft.Extensions.DependencyInjection;
+
+using MySql.Data.EntityFrameworkCore.Extensions;
+
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,8 +12,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<TodoContext>(opt =>
     opt.UseInMemoryDatabase("TodoList"));
 
+builder.Services.AddDbContext<WorldDbContext>(options =>
+    options.UseMySql(builder.Configuration.GetConnectionString("WorldDbContext"),
+    new MySqlServerVersion(new Version(8, 0, 25))));
+
+
+
+
 // Agregar servicios de controladores
 builder.Services.AddControllers();
+
+
+
 
 // Configurar Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
