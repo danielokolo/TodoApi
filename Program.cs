@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TodoApi.Models;
 
-using MySql.Data.EntityFrameworkCore.Extensions;
+
+
 
 
 
@@ -12,9 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<TodoContext>(opt =>
     opt.UseInMemoryDatabase("TodoList"));
 
-builder.Services.AddDbContext<WorldDbContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("WorldDbContext"),
-    new MySqlServerVersion(new Version(8, 0, 25))));
+
 
 
 
