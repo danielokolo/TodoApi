@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\daniel okolo\\TodoApi\\TodoApi\\TodoApi.csproj": {}
+    "c:\\Users\\daniel okolo\\TodoApi\\TodoApi\\TodoApi.csproj": {}
   },
   "projects": {
-    "C:\\Users\\daniel okolo\\TodoApi\\TodoApi\\TodoApi.csproj": {
+    "c:\\Users\\daniel okolo\\TodoApi\\TodoApi\\TodoApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\daniel okolo\\TodoApi\\TodoApi\\TodoApi.csproj",
+        "projectUniqueName": "c:\\Users\\daniel okolo\\TodoApi\\TodoApi\\TodoApi.csproj",
         "projectName": "TodoApi",
-        "projectPath": "C:\\Users\\daniel okolo\\TodoApi\\TodoApi\\TodoApi.csproj",
+        "projectPath": "c:\\Users\\daniel okolo\\TodoApi\\TodoApi\\TodoApi.csproj",
         "packagesPath": "C:\\Users\\daniel okolo\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\daniel okolo\\TodoApi\\TodoApi\\obj\\",
+        "outputPath": "c:\\Users\\daniel okolo\\TodoApi\\TodoApi\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
