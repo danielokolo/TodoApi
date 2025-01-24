@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
 using TodoApi.Models.DTOs;
 using TodoApi.Models.Entity;
 
@@ -16,18 +16,22 @@ public class CityController : ControllerBase
 
     public CityController(IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("MySqlConnection");
+        var connectionString = configuration.GetConnectionString("WorldDbContext");
         _context = new MySqlService(connectionString);
         
     }
 
-    [HttpGet]
-[Route("listar")]
-public IActionResult GetAllCitys()
-{
+    [HttpGet]   
+    [Route("listar")]
+    public IActionResult GetAllCitys()
+    {
     var citys = _context.getAllCitys();
     return Ok(citys);
-}
+    }
+
+    
+
+
 
    
 }
