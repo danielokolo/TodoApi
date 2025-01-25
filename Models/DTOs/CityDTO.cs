@@ -2,10 +2,10 @@ namespace TodoApi.Models.DTOs
 {
     public class CityDTO
     {
-        public int Id { get; private set; }
-        public string Name { get; private set; }
-        public string CountryCode { get; private set; }
-        public int Population { get; private set; }
+        public int Id { get;  set; }
+        public string Name { get;  set; }
+        public string CountryCode { get;  set; }
+        public int Population { get;  set; }
 
         // Constructor
         public CityDTO(int id, string name, string countryCode, int population)
@@ -36,5 +36,27 @@ namespace TodoApi.Models.DTOs
         {
             return Population;
         }
+
+         public void SetId(int id)
+        {
+            Id = id;
+        }
+
+        public void SetName(string name)
+        {
+            Name = name;
+        }
+
+        public void SetCountryCode(string countryCode)
+        {
+            CountryCode = countryCode;
+        }
+
+        public void SetPopulation(int population)
+        {
+            Population = population;
+        }
+
+        
     }
 }
