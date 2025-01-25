@@ -1,6 +1,6 @@
 namespace TodoApi.Models.DTOs
 {
-    public class CityDTO
+    public class CityDTO : IEntity
     {
         public int Id { get;  set; }
         public string Name { get;  set; }
@@ -14,6 +14,11 @@ namespace TodoApi.Models.DTOs
             Name = name;
             CountryCode = countryCode;
             Population = population;
+        }
+
+        public CityDTO()
+        {
+          
         }
 
         // Getters (estos son implícitos al usar { get; private set; })

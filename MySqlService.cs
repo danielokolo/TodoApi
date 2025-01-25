@@ -1,116 +1,182 @@
-using MySql.Data.MySqlClient;
-using TodoApi.Models.DTOs;
-using TodoApi.Models.Entity;
-using System.Collections.Generic;
+using MySql.Data.MySqlClient; // Necesario para trabajar con MySQL
 
-public class MySqlService
+
+
+public class MySqlService<T> where T : class, IEntity, new()
 {
     private string _connectionString;
 
     public MySqlService(string connectionString)
     {
-        this._connectionString = connectionString;
+        _connectionString = connectionString;
     }
 
-    // Get a new MySql connection
-    public MySqlConnection getConnection()
+    private MySqlConnection getConnection()
     {
-        return new MySqlConnection(this._connectionString);
+        return new MySqlConnection(_connectionString);
     }
 
-    // Get all cities
-    public List<CityDTO> getAllCities()
+    // Método para obtener el nombre del campo clave primaria (puede ser "Id" o "Code")
+    private string GetPrimaryKeyName()
     {
-        List<CityDTO> cities = new List<CityDTO>();
+        var keyProperty = typeof(T).GetProperties().FirstOrDefault(p =>
+            p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase) || 
+            p.Name.Equals("Code", StringComparison.OrdinalIgnoreCase));
+        return keyProperty?.Name;
+    }
+
+    // Método para obtener el tipo de la clave primaria (int, string, etc.)
+    private Type GetPrimaryKeyType()
+    {
+        var keyProperty = typeof(T).GetProperties().FirstOrDefault(p =>
+            p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase) ||
+            p.Name.Equals("Code", StringComparison.OrdinalIgnoreCase));
+        return keyProperty?.PropertyType;
+    }
+
+    // Método para obtener el valor de la clave primaria de una entidad
+    private object GetPrimaryKeyValue(T entity)
+    {
+        var keyProperty = typeof(T).GetProperties().FirstOrDefault(p =>
+            p.Name.Equals("Id", StringComparison.OrdinalIgnoreCase) ||
+            p.Name.Equals("Code", StringComparison.OrdinalIgnoreCase));
+        return keyProperty?.GetValue(entity);
+    }
+
+    // Get all records
+    public List<T> GetAll(string tableName)
+    {
+        List<T> entities = new List<T>();
         using (var connection = getConnection())
         {
             connection.Open();
-            string query = "SELECT * FROM city";
+            string query = $"SELECT * FROM {tableName}";
             MySqlCommand command = new MySqlCommand(query, connection);
             MySqlDataReader reader = command.ExecuteReader();
+
             while (reader.Read())
             {
-                cities.Add(new CityDTO(
-                    reader.GetInt32("ID"),
-                    reader.GetString("Name"),
-                    reader.GetString("CountryCode"),
-                    reader.GetInt32("Population")
-                ));
+                T entity = MapReaderToEntity(reader);
+                entities.Add(entity);
             }
         }
-        return cities;
+        return entities;
     }
 
-    // Get city by ID
-    public CityDTO GetCityById(int id)
+    // Get record by primary key
+    public T GetByPrimaryKey(string tableName, object keyValue)
     {
-        CityDTO city = null;
+        T entity = null;
         using (var connection = getConnection())
         {
             connection.Open();
-            string query = "SELECT * FROM city WHERE ID = @id";
+            string primaryKey = GetPrimaryKeyName();  // Obtener nombre de la clave primaria
+            string query = $"SELECT * FROM {tableName} WHERE {primaryKey} = @keyValue";
             MySqlCommand command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@id", id);
+            command.Parameters.AddWithValue("@keyValue", keyValue);
             MySqlDataReader reader = command.ExecuteReader();
+
             if (reader.Read())
             {
-                city = new CityDTO(
-                    reader.GetInt32("ID"),
-                    reader.GetString("Name"),
-                    reader.GetString("CountryCode"),
-                    reader.GetInt32("Population")
-                );
+                entity = MapReaderToEntity(reader);
             }
         }
-        return city;
+        return entity;
     }
 
-    // Add a new city
-    public City AddCity(City city)
+    // Add a new record
+    public T Add(string tableName, T entity)
     {
         using (var connection = getConnection())
         {
             connection.Open();
-            string query = "INSERT INTO city (Name, CountryCode, Population) VALUES (@name, @countryCode, @population)";
-            MySqlCommand command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@name", city.Name);
-            command.Parameters.AddWithValue("@countryCode", city.CountryCode);
-            command.Parameters.AddWithValue("@population", city.Population);
-            command.ExecuteNonQuery();
+            var properties = typeof(T).GetProperties().Where(p => p.Name != "Id" && p.Name != "Code").ToList();
+            var columnNames = string.Join(", ", properties.Select(p => p.Name));
+            var parameters = string.Join(", ", properties.Select(p => $"@{p.Name}"));
 
-            // Set the ID of the inserted city (assumes AUTO_INCREMENT in MySQL)
-            city.Id = (int)command.LastInsertedId;
+            string query = $"INSERT INTO {tableName} ({columnNames}) VALUES ({parameters})";
+            MySqlCommand command = new MySqlCommand(query, connection);
+
+            foreach (var property in properties)
+            {
+                command.Parameters.AddWithValue($"@{property.Name}", property.GetValue(entity));
+            }
+
+            command.ExecuteNonQuery();
+            // Después de la inserción, asignar el Id o Code (dependiendo de la entidad)
+            if (GetPrimaryKeyType() == typeof(int))
+            {
+                entity.GetType().GetProperty("Id")?.SetValue(entity, (int)command.LastInsertedId);
+            }
         }
-        return city;
+        return entity;
     }
 
-    // Update an existing city
-    public City UpdateCity(City city)
+    // Update an existing record
+    public T Update(string tableName, T entity)
     {
         using (var connection = getConnection())
         {
             connection.Open();
-            string query = "UPDATE city SET Name = @name, CountryCode = @countryCode, Population = @population WHERE ID = @id";
+            var properties = typeof(T).GetProperties().Where(p => p.Name != "Id" && p.Name != "Code").ToList();
+            var setClause = string.Join(", ", properties.Select(p => $"{p.Name} = @{p.Name}"));
+
+            string primaryKey = GetPrimaryKeyName();
+            string query = $"UPDATE {tableName} SET {setClause} WHERE {primaryKey} = @keyValue";
             MySqlCommand command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@name", city.Name);
-            command.Parameters.AddWithValue("@countryCode", city.CountryCode);
-            command.Parameters.AddWithValue("@population", city.Population);
-            command.Parameters.AddWithValue("@id", city.Id);
+
+            foreach (var property in properties)
+            {
+                command.Parameters.AddWithValue($"@{property.Name}", property.GetValue(entity));
+            }
+            command.Parameters.AddWithValue("@keyValue", GetPrimaryKeyValue(entity));
+
             command.ExecuteNonQuery();
         }
-        return city;
+        return entity;
     }
 
-    // Delete a city by ID
-    public void DeleteCity(int id)
+    // Delete a record by primary key
+    public void Delete(string tableName, object keyValue)
     {
         using (var connection = getConnection())
         {
             connection.Open();
-            string query = "DELETE FROM city WHERE ID = @id";
+            string primaryKey = GetPrimaryKeyName();
+            string query = $"DELETE FROM {tableName} WHERE {primaryKey} = @keyValue";
             MySqlCommand command = new MySqlCommand(query, connection);
-            command.Parameters.AddWithValue("@id", id);
+            command.Parameters.AddWithValue("@keyValue", keyValue);
             command.ExecuteNonQuery();
         }
+    }
+
+    // Helper method to map a data reader to an entity
+    private T MapReaderToEntity(MySqlDataReader reader)
+    {
+        T entity = new T();
+        foreach (var property in typeof(T).GetProperties())
+        {
+            if (reader.HasColumn(property.Name) && !reader.IsDBNull(reader.GetOrdinal(property.Name)))
+            {
+                property.SetValue(entity, reader.GetValue(reader.GetOrdinal(property.Name)));
+            }
+        }
+        return entity;
+    }
+}
+
+// Extension method to check if a column exists in a data reader
+public static class MySqlDataReaderExtensions
+{
+    public static bool HasColumn(this MySqlDataReader reader, string columnName)
+    {
+        for (int i = 0; i < reader.FieldCount; i++)
+        {
+            if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

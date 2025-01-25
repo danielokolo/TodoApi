@@ -1,44 +1,57 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using TodoApi.Models.DTOs;
-using TodoApi.Models.Entity;
 
 [Route("api/[controller]")]
 [ApiController]
 public class CityController : ControllerBase
 {
-    private readonly MySqlService _context;
+    private readonly MySqlService<CityDTO> _cityService;
 
+    // Usamos el servicio genérico con CityDTO
     public CityController(IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("WorldDbContext");
-        _context = new MySqlService(connectionString);
+        _cityService = new MySqlService<CityDTO>(connectionString);
     }
 
     // GET: api/City/listar
-    [HttpGet]   
+    [HttpGet]
     [Route("listar")]
     public IActionResult GetAllCities()
     {
-        var cities = _context.getAllCities();
-        return Ok(cities);
+        try
+        {
+            // Obtener todas las ciudades
+            var cities = _cityService.GetAll("city");
+            return Ok(cities);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     // GET: api/City/{id}
     [HttpGet("{id}")]
     public IActionResult GetCity(int id)
     {
-        var city = _context.GetCityById(id);
-        if (city == null)
+        try
         {
-            return NotFound();
+            // Obtener una ciudad por su ID
+            var city = _cityService.GetByPrimaryKey("city", id); // Aquí usamos GetByPrimaryKey para admitir tanto "Id" como "Code"
+            if (city == null)
+            {
+                return NotFound();
+            }
+            return Ok(city);
         }
-        return Ok(city);
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     // POST: api/City
@@ -50,61 +63,71 @@ public class CityController : ControllerBase
             return BadRequest("City data is null.");
         }
 
-        var city = new City
+        try
         {
-            Name = cityDto.Name,
-            CountryCode = cityDto.CountryCode,
-            Population = cityDto.Population
-        };
-
-        var createdCity = _context.AddCity(city);
-        return CreatedAtAction(nameof(GetCity), new { id = createdCity.Id }, createdCity);
-    }
-// PUT: api/City/{id}
-[HttpPut("{id}")]
-public IActionResult UpdateCity(int id, [FromBody] CityDTO cityDto)
-{
-    if (cityDto == null)
-    {
-        return BadRequest("City data is null.");
+            // Crear una nueva ciudad usando el servicio genérico
+            var createdCity = _cityService.Add("city", cityDto);
+            return CreatedAtAction(nameof(GetCity), new { id = createdCity.Id }, createdCity);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
-    // Obtener la ciudad existente de la base de datos (de tipo City)
-    var existingCity = _context.GetCityById(id);
-    if (existingCity == null)
+    // PUT: api/City/{id}
+    [HttpPut("{id}")]
+    public IActionResult UpdateCity(int id, [FromBody] CityDTO cityDto)
     {
-        return NotFound();
+        if (cityDto == null)
+        {
+            return BadRequest("City data is null.");
+        }
+
+        try
+        {
+            // Obtener la ciudad existente
+            var existingCity = _cityService.GetByPrimaryKey("city", id); // Usamos GetByPrimaryKey aquí también
+            if (existingCity == null)
+            {
+                return NotFound();
+            }
+
+            // Actualizar las propiedades del DTO existente
+            existingCity.Name = cityDto.Name;
+            existingCity.CountryCode = cityDto.CountryCode;
+            existingCity.Population = cityDto.Population;
+
+            // Actualizar la ciudad usando el servicio genérico
+            var updatedCity = _cityService.Update("city", existingCity);
+            return Ok(updatedCity);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
-
-    // Convertir el CityDTO a un objeto City
-    City cityToUpdate = new City
-    {
-        Id = existingCity.Id,  // Asignamos el ID de la ciudad existente
-        Name = cityDto.Name,
-        CountryCode = cityDto.CountryCode,
-        Population = cityDto.Population
-    };
-
-    // Actualizar la ciudad en la base de datos
-    var updatedCity = _context.UpdateCity(cityToUpdate);
-
-    // Devolver la ciudad actualizada como respuesta
-    return Ok(updatedCity);
-}
-
-
 
     // DELETE: api/City/{id}
     [HttpDelete("{id}")]
     public IActionResult DeleteCity(int id)
     {
-        var city = _context.GetCityById(id);
-        if (city == null)
+        try
         {
-            return NotFound();
-        }
+            // Obtener la ciudad a eliminar
+            var city = _cityService.GetByPrimaryKey("city", id); // Usamos GetByPrimaryKey aquí también
+            if (city == null)
+            {
+                return NotFound();
+            }
 
-        _context.DeleteCity(id);
-        return NoContent();
+            // Eliminar la ciudad usando el servicio genérico
+            _cityService.Delete("city", id);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 }
